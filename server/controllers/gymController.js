@@ -132,6 +132,26 @@ const getPendingGyms = async (req, res) => {
   }
 };
 
+// @desc    Upload Gym Images to Cloudinary
+// @route   POST /api/gyms/upload
+// @access  Private/GymOwner
+const uploadGymImages = async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No images provided" });
+    }
+
+    // Extract Cloudinary URLs from multer-storage-cloudinary
+    const imageUrls = req.files.map((file) => file.path);
+
+    res.status(200).json({ urls: imageUrls });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error uploading images", error: error.message });
+  }
+};
+
 module.exports = {
   getGyms,
   getGymById,
@@ -139,4 +159,5 @@ module.exports = {
   getMyGym,
   updateGymStatus,
   getPendingGyms,
+  uploadGymImages,
 };

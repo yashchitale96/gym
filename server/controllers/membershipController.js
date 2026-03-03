@@ -73,14 +73,12 @@ const createOrder = async (req, res) => {
     res.json(order);
   } catch (error) {
     console.error("Razorpay Error:", error);
-    res
-      .status(500)
-      .json({
-        message:
-          error.error?.description ||
-          error.message ||
-          "Payment initialization failed on server",
-      });
+    res.status(500).json({
+      message:
+        error.error?.description ||
+        error.message ||
+        "Payment initialization failed on server",
+    });
   }
 };
 
@@ -167,8 +165,75 @@ const getMyMemberships = async (req, res) => {
   }
 };
 
+// @desc    Get user's payment history
+// @route   GET /api/memberships/payments
+// @access  Private/User
+const getMyPayments = async (req, res) => {
+  try {
+    const payments = await Payment.find({ userId: req.user._id })
+      .populate("gymId", "name")
+      .populate("planId", "name durationInDays")
+      .sort({ createdAt: -1 });
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get members for a gym (owner view)
+// @route   GET /api/memberships/gym/:gymId
+// @access  Private/GymOwner
+const getGymMembers = async (req, res) => {
+  try {
+    const memberships = await Membership.find({ gymId: req.params.gymId })
+      .populate("userId", "name email phone")
+      .populate("planId", "name price durationInDays")
+      .sort({ createdAt: -1 });
+    res.json(memberships);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get revenue summary for gym owner
+// @route   GET /api/memberships/gym/:gymId/revenue
+// @access  Private/GymOwner
+const getGymRevenue = async (req, res) => {
+  try {
+    const payments = await Payment.find({
+      gymId: req.params.gymId,
+      status: "COMPLETED",
+    });
+    const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
+    const totalTransactions = payments.length;
+
+    // This month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthlyPayments = payments.filter(
+      (p) => new Date(p.createdAt) >= startOfMonth,
+    );
+    const monthlyRevenue = monthlyPayments.reduce(
+      (sum, p) => sum + p.amount,
+      0,
+    );
+
+    res.json({
+      totalRevenue,
+      totalTransactions,
+      monthlyRevenue,
+      monthlyTransactions: monthlyPayments.length,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createOrder,
   verifyPayment,
   getMyMemberships,
+  getMyPayments,
+  getGymMembers,
+  getGymRevenue,
 };

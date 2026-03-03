@@ -3,8 +3,11 @@ const router = express.Router();
 const {
   markAttendance,
   getGymAttendance,
+  getUserAttendance,
 } = require("../controllers/attendanceController");
 const { protect, authorize } = require("../middlewares/authMiddleware");
+
+router.get("/my", protect, getUserAttendance);
 
 router.post(
   "/scan",

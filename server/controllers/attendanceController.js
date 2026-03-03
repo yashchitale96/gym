@@ -71,7 +71,23 @@ const getGymAttendance = async (req, res) => {
   }
 };
 
+// @desc    Get user's own attendance history
+// @route   GET /api/attendance/my
+// @access  Private/User
+const getUserAttendance = async (req, res) => {
+  try {
+    const attendances = await Attendance.find({ userId: req.user._id })
+      .populate("gymId", "name address")
+      .sort({ date: -1 })
+      .limit(50);
+    res.json(attendances);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   markAttendance,
   getGymAttendance,
+  getUserAttendance,
 };
