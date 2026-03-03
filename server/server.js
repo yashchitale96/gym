@@ -21,11 +21,32 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Database connection
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.log("MongoDB Connection Error:", err));
+// Database connection module
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) {
+    return;
+  }
+
+  try {
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log("MongoDB Connected");
+  } catch (error) {
+    console.log("MongoDB Connection Error:", error);
+    throw error;
+  }
+};
+
+// Database connection middleware
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    res
+      .status(500)
+      .json({ status: "Error", message: "Database connection failed" });
+  }
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -35,10 +56,18 @@ app.use("/api/memberships", membershipRoutes);
 app.use("/api/attendance", attendanceRoutes);
 
 app.get("/api/health", (req, res) => {
-  res.json({ status: "OK", message: "Gym API is running" });
+  res.json({
+    status: "OK",
+    mongooseReadyState: mongoose.connection.readyState,
+    message: "Gym API is running",
+  });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Start server (only required for local dev, Vercel will export 'app')
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
