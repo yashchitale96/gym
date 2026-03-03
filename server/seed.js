@@ -21,6 +21,10 @@ const seedAdmin = async () => {
       name: "Super Admin",
       email: "admin@fitfind.com",
       phone: "9999999999",
+      location: {
+        type: "Point",
+        coordinates: [77.1009, 28.7042], // lng, lat
+      },
       password: "adminpassword",
       role: "SUPER_ADMIN",
     });

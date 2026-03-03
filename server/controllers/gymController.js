@@ -4,7 +4,7 @@ const Gym = require("../models/Gym");
 // @route   GET /api/gyms
 // @access  Public
 const getGyms = async (req, res) => {
-  const { keyword, minPrice, maxPrice } = req.query;
+  const { keyword, minPrice, maxPrice, lat, lng, maxDistance } = req.query;
 
   let query = { status: "APPROVED" };
 
@@ -19,7 +19,27 @@ const getGyms = async (req, res) => {
   }
 
   try {
-    const gyms = await Gym.find(query);
+    let gyms;
+    // If lat and lng are provided, use $geoNear aggregation for sorting by distance
+    if (lat && lng) {
+      const geoNearStage = {
+        $geoNear: {
+          near: { type: "Point", coordinates: [Number(lng), Number(lat)] },
+          distanceField: "distance",
+          spherical: true,
+          query: query,
+        },
+      };
+
+      // Set maxDistance if provided (convert km to meters)
+      if (maxDistance) {
+        geoNearStage.$geoNear.maxDistance = Number(maxDistance) * 1000;
+      }
+
+      gyms = await Gym.aggregate([geoNearStage]);
+    } else {
+      gyms = await Gym.find(query);
+    }
     res.json(gyms);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -51,14 +71,12 @@ const createGym = async (req, res) => {
     name,
     description,
     address,
-    location,
+    location, // expected to be { lat, lng } from frontend
     amenities,
     monthlySubscriptionFee,
   } = req.body;
 
   try {
-    // Check if owner already has a gym (optional, depending on business logic)
-    // For this MVP, let's allow 1 owner = 1 gym for simplicity
     const existingGym = await Gym.findOne({ ownerId: req.user._id });
     if (existingGym) {
       return res
@@ -66,12 +84,21 @@ const createGym = async (req, res) => {
         .json({ message: "You already have a gym profile registered" });
     }
 
+    // Format location to GeoJSON
+    let geoJsonLocation = undefined;
+    if (location && location.lat && location.lng) {
+      geoJsonLocation = {
+        type: "Point",
+        coordinates: [Number(location.lng), Number(location.lat)],
+      };
+    }
+
     const gym = await Gym.create({
       ownerId: req.user._id,
       name,
       description,
       address,
-      location,
+      location: geoJsonLocation,
       images: req.body.images || [], // Handle cloud proxy image urls if passed
       amenities,
       monthlySubscriptionFee,

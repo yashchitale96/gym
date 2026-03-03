@@ -685,6 +685,60 @@ const OwnerDashboard = () => {
             </div>
 
             <div>
+              <label className="block text-sm font-medium mb-1 flex items-center justify-between">
+                <span>
+                  Location <span className="text-red-500">*</span>
+                </span>
+                {!gym && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                          (position) => {
+                            setGymForm({
+                              ...gymForm,
+                              location: {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude,
+                              },
+                            });
+                            toast.success("Location captured successfully!");
+                          },
+                          (error) => {
+                            toast.error(
+                              "Failed to get location. Please allow location access.",
+                            );
+                          },
+                        );
+                      } else {
+                        toast.error(
+                          "Geolocation is not supported by this browser.",
+                        );
+                      }
+                    }}
+                    className="text-xs bg-primary/10 text-primary px-2 py-1 rounded hover:bg-primary/20 transition-colors"
+                  >
+                    Get Current Location
+                  </button>
+                )}
+              </label>
+              {gymForm.location ? (
+                <div className="text-sm bg-background border border-border rounded-md px-3 py-2 text-foreground/80 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Lat: {gymForm.location.lat.toFixed(4)}, Lng:{" "}
+                  {gymForm.location.lng.toFixed(4)}
+                </div>
+              ) : (
+                <div className="text-sm bg-background/50 border border-border rounded-md px-3 py-2 text-foreground/50 border-dashed">
+                  {gym
+                    ? "Location not set"
+                    : "Click 'Get Current Location' to pin your gym on the map."}
+                </div>
+              )}
+            </div>
+
+            <div>
               <label className="block text-sm font-medium mb-1">
                 Gym Images (Max 5)
               </label>

@@ -20,8 +20,15 @@ const gymSchema = new mongoose.Schema(
       required: true,
     },
     location: {
-      lat: Number,
-      lng: Number,
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        index: "2dsphere",
+      },
     },
     images: [
       {

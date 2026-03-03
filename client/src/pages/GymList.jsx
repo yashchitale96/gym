@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, MapPin, IndianRupee } from "lucide-react";
+import { Search, MapPin, IndianRupee, Navigation } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../utils/api";
 import toast from "react-hot-toast";
@@ -8,21 +8,65 @@ const GymList = () => {
   const [gyms, setGyms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [userLocation, setUserLocation] = useState(null);
+  const [maxDistance, setMaxDistance] = useState("all"); // 'all', 5, 10, 20
+  const [gettingLocation, setGettingLocation] = useState(false);
+
+  const fetchGyms = async () => {
+    setLoading(true);
+    try {
+      let url = "/gyms";
+      const params = new URLSearchParams();
+
+      if (userLocation && maxDistance !== "all") {
+        params.append("lat", userLocation.lat);
+        params.append("lng", userLocation.lng);
+        params.append("maxDistance", maxDistance);
+      }
+
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+
+      const { data } = await api.get(url);
+      setGyms(data);
+    } catch (error) {
+      toast.error("Failed to load gyms");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchGyms = async () => {
-      try {
-        const { data } = await api.get("/gyms");
-        setGyms(data);
-      } catch (error) {
-        toast.error("Failed to load gyms");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchGyms();
-  }, []);
+  }, [userLocation, maxDistance]);
+
+  const handleGetLocation = () => {
+    setGettingLocation(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+          setGettingLocation(false);
+          toast.success("Location found. Viewing nearby gyms.");
+        },
+        (error) => {
+          setGettingLocation(false);
+          toast.error(
+            "Failed to get location. Please allow location access in your browser.",
+          );
+        },
+        { timeout: 10000 },
+      );
+    } else {
+      setGettingLocation(false);
+      toast.error("Geolocation is not supported by this browser.");
+    }
+  };
 
   const filteredGyms = gyms.filter(
     (gym) =>
@@ -48,16 +92,54 @@ const GymList = () => {
             Find the perfect fitness center near you.
           </p>
         </div>
-        <div className="relative w-full md:w-96 group">
-          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground/40 group-focus-within:text-primary transition-colors z-10" />
-          <input
-            type="text"
-            placeholder="Search by name or location..."
-            className="relative w-full pl-12 pr-4 py-3 bg-black/40 border border-white/10 rounded-full focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 backdrop-blur-md transition-all z-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+          <div className="relative w-full md:w-80 group">
+            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground/40 group-focus-within:text-primary transition-colors z-10" />
+            <input
+              type="text"
+              placeholder="Search by name or address..."
+              className="relative w-full pl-12 pr-4 py-3 bg-black/40 border border-white/10 rounded-full focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 backdrop-blur-md transition-all z-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            {!userLocation && maxDistance !== "all" ? (
+              <button
+                onClick={handleGetLocation}
+                disabled={gettingLocation}
+                className="bg-primary/20 text-primary hover:bg-primary/30 px-4 py-3 rounded-full flex items-center justify-center gap-2 font-medium transition-colors disabled:opacity-50 min-w-[140px]"
+              >
+                {gettingLocation ? (
+                  <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                ) : (
+                  <>
+                    <Navigation className="h-4 w-4" /> Locate Me
+                  </>
+                )}
+              </button>
+            ) : null}
+
+            <select
+              value={maxDistance}
+              onChange={(e) => {
+                const val = e.target.value;
+                setMaxDistance(val);
+                if (val !== "all" && !userLocation) {
+                  // If changing to a distance and don't have location yet, trigger it
+                  handleGetLocation();
+                }
+              }}
+              className="bg-black/40 border border-white/10 rounded-full px-4 py-3 text-sm focus:outline-none focus:border-primary/50 backdrop-blur-md appearance-none"
+            >
+              <option value="all">Everywhere</option>
+              <option value="5">Within 5 km</option>
+              <option value="10">Within 10 km</option>
+              <option value="25">Within 25 km</option>
+            </select>
+          </div>
         </div>
       </div>
 
