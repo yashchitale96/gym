@@ -20,10 +20,11 @@ const OwnerDashboard = () => {
   const [attendances, setAttendances] = useState([]);
   const [members, setMembers] = useState([]);
   const [revenue, setRevenue] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [scannerInit, setScannerInit] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
+  const [isEditingGym, setIsEditingGym] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Form states
   const [gymForm, setGymForm] = useState({
@@ -174,32 +175,60 @@ const OwnerDashboard = () => {
 
   const handleGymSubmit = async (e) => {
     e.preventDefault();
+    setUploadingImages(true);
     try {
+      // Upload images if any
+      let uploadedImageUrls = [];
+      if (selectedImages.length > 0) {
+        const formData = new FormData();
+        selectedImages.forEach((img) => formData.append("images", img));
+
+        const uploadRes = await api.post("/gyms/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        uploadedImageUrls = uploadRes.data.urls;
+      }
+
+      const payload = {
+        ...gymForm,
+        images: [...(gymForm.images || []), ...uploadedImageUrls],
+      };
+
       if (gym) {
-        toast.error(
-          "Updating gym details not fully supported in MVP without specific endpoint.",
-        );
-      } else {
-        let uploadedUrls = [];
-        if (selectedImages.length > 0) {
-          uploadedUrls = await uploadImages();
-          if (!uploadedUrls) return; // Stop if upload failed
-        }
-
-        const submitData = {
-          ...gymForm,
-          images: [...gymForm.images, ...uploadedUrls],
-        };
-
-        const { data } = await api.post("/gyms", submitData);
+        // Update existing gym
+        const { data } = await api.put(`/gyms/${gym._id}`, payload);
         setGym(data);
-        toast.success("Gym profile created successfully!");
+        setGymForm({
+          name: data.name,
+          description: data.description,
+          address: data.address,
+          monthlySubscriptionFee: data.monthlySubscriptionFee,
+          images: data.images || [],
+          location: data.location?.coordinates
+            ? {
+                lat: data.location.coordinates[1],
+                lng: data.location.coordinates[0],
+              }
+            : null,
+        });
+        setSelectedImages([]); // Clear selected images after successful upload/update
+        setIsEditingGym(false);
+        toast.success("Gym Profile updated successfully!");
+      } else {
+        // Create new gym
+        const { data } = await api.post("/gyms", payload);
+        setGym(data);
+        toast.success(
+          "Gym Profile created successfully! Awaiting Admin Approval.",
+        );
         setActiveTab("overview");
       }
     } catch (error) {
       toast.error(
         error.response?.data?.message || "Failed to save gym profile",
       );
+    } finally {
+      setUploadingImages(false);
     }
   };
 
@@ -622,9 +651,20 @@ const OwnerDashboard = () => {
             onSubmit={handleGymSubmit}
             className="bg-card border border-border rounded-xl p-6 space-y-5"
           >
-            <h2 className="text-xl font-bold border-b border-border pb-2 flex items-center gap-2">
-              <Settings className="h-5 w-5" /> Gym Profile Information
-            </h2>
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Settings className="h-5 w-5" /> Gym Profile Information
+              </h2>
+              {gym && !isEditingGym && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingGym(true)}
+                  className="bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1 rounded-md text-sm transition-colors flex items-center gap-1"
+                >
+                  <Edit3 className="h-4 w-4" /> Edit Profile
+                </button>
+              )}
+            </div>
 
             {!gym && (
               <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 p-4 rounded-lg text-sm mb-4">
@@ -645,9 +685,9 @@ const OwnerDashboard = () => {
                 onChange={(e) =>
                   setGymForm({ ...gymForm, name: e.target.value })
                 }
-                className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none"
+                className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
                 placeholder="e.g. Iron Forge Fitness"
-                disabled={!!gym}
+                disabled={!!gym && !isEditingGym}
               />
             </div>
 
@@ -662,9 +702,9 @@ const OwnerDashboard = () => {
                 onChange={(e) =>
                   setGymForm({ ...gymForm, address: e.target.value })
                 }
-                className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none"
+                className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
                 placeholder="e.g. 123 Main St, City, State"
-                disabled={!!gym}
+                disabled={!!gym && !isEditingGym}
               />
             </div>
 
@@ -678,9 +718,9 @@ const OwnerDashboard = () => {
                 onChange={(e) =>
                   setGymForm({ ...gymForm, description: e.target.value })
                 }
-                className="w-full bg-background border border-border rounded-md px-3 py-2 h-32 focus:ring-2 focus:ring-primary focus:outline-none"
+                className="w-full bg-background border border-border rounded-md px-3 py-2 h-32 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
                 placeholder="Describe your gym, equipment, rules, etc."
-                disabled={!!gym}
+                disabled={!!gym && !isEditingGym}
               ></textarea>
             </div>
 
@@ -689,7 +729,7 @@ const OwnerDashboard = () => {
                 <span>
                   Location <span className="text-red-500">*</span>
                 </span>
-                {!gym && (
+                {(!gym || isEditingGym) && (
                   <button
                     type="button"
                     onClick={() => {
@@ -723,8 +763,8 @@ const OwnerDashboard = () => {
                   </button>
                 )}
               </label>
-              {gymForm.location ? (
-                <div className="text-sm bg-background border border-border rounded-md px-3 py-2 text-foreground/80 flex items-center gap-2">
+              {gymForm.location && gymForm.location.lat ? (
+                <div className="text-sm bg-background border border-border rounded-md px-3 py-2 text-foreground/80 flex items-center gap-2 disabled:opacity-50">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
                   Lat: {gymForm.location.lat.toFixed(4)}, Lng:{" "}
                   {gymForm.location.lng.toFixed(4)}
@@ -742,7 +782,7 @@ const OwnerDashboard = () => {
               <label className="block text-sm font-medium mb-1">
                 Gym Images (Max 5)
               </label>
-              {!gym && (
+              {(!gym || isEditingGym) && (
                 <input
                   type="file"
                   multiple
@@ -752,7 +792,7 @@ const OwnerDashboard = () => {
                 />
               )}
               {/* Preview Selected Local Images */}
-              {selectedImages.length > 0 && !gym && (
+              {selectedImages.length > 0 && (!gym || isEditingGym) && (
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                   {selectedImages.map((img, i) => (
                     <div
@@ -769,7 +809,7 @@ const OwnerDashboard = () => {
                 </div>
               )}
               {/* Show Existing Remote Images */}
-              {gym && gymForm.images && gymForm.images.length > 0 && (
+              {gymForm.images && gymForm.images.length > 0 && (
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                   {gymForm.images.map((url, i) => (
                     <div
@@ -781,6 +821,22 @@ const OwnerDashboard = () => {
                         alt={`Existing ${i}`}
                         className="w-full h-full object-cover"
                       />
+                      {isEditingGym && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGymForm({
+                              ...gymForm,
+                              images: gymForm.images.filter(
+                                (_, idx) => idx !== i,
+                              ),
+                            });
+                          }}
+                          className="absolute top-2 right-2 bg-red-500/80 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -807,26 +863,56 @@ const OwnerDashboard = () => {
                     monthlySubscriptionFee: e.target.value,
                   })
                 }
-                className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none"
-                disabled={!!gym}
+                className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
+                disabled={!!gym && !isEditingGym}
               />
             </div>
 
-            {!gym && (
-              <button
-                type="submit"
-                disabled={uploadingImages}
-                className="w-full bg-primary text-primary-foreground font-medium py-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center"
-              >
-                {uploadingImages ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                    Uploading Images & Submitting...
-                  </>
-                ) : (
-                  "Submit Gym Profile for Review"
+            {(!gym || isEditingGym) && (
+              <div className="flex gap-4">
+                <button
+                  type="submit"
+                  disabled={uploadingImages}
+                  className="flex-1 bg-primary text-primary-foreground font-medium py-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center"
+                >
+                  {uploadingImages ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                      Uploading Images & Saving...
+                    </>
+                  ) : gym ? (
+                    "Save Changes"
+                  ) : (
+                    "Submit Gym Profile for Review"
+                  )}
+                </button>
+                {gym && isEditingGym && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // reset to existing gym details
+                      setGymForm({
+                        name: gym.name || "",
+                        description: gym.description || "",
+                        address: gym.address || "",
+                        monthlySubscriptionFee: gym.monthlySubscriptionFee || 0,
+                        images: gym.images || [],
+                        location: gym.location?.coordinates
+                          ? {
+                              lat: gym.location.coordinates[1],
+                              lng: gym.location.coordinates[0],
+                            }
+                          : null,
+                      });
+                      setSelectedImages([]);
+                      setIsEditingGym(false);
+                    }}
+                    className="px-6 bg-zinc-800 text-white rounded-md hover:bg-zinc-700 transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
                 )}
-              </button>
+              </div>
             )}
           </form>
         </div>

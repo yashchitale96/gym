@@ -110,6 +110,65 @@ const createGym = async (req, res) => {
   }
 };
 
+// @desc    Update a gym profile
+// @route   PUT /api/gyms/:id
+// @access  Private/GymOwner
+const updateGym = async (req, res) => {
+  try {
+    const gym = await Gym.findById(req.params.id);
+
+    if (!gym) {
+      return res.status(404).json({ message: "Gym not found" });
+    }
+
+    // Ensure the user owns this gym OR is a SUPER_ADMIN
+    if (
+      gym.ownerId.toString() !== req.user._id.toString() &&
+      req.user.role !== "SUPER_ADMIN"
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to update this gym" });
+    }
+
+    const {
+      name,
+      description,
+      address,
+      location, // expected to be { lat, lng } from frontend
+      amenities,
+      monthlySubscriptionFee,
+      images,
+    } = req.body;
+
+    // Format location to GeoJSON if provided
+    let geoJsonLocation = gym.location; // keep existing if not provided
+    if (location && location.lat && location.lng) {
+      geoJsonLocation = {
+        type: "Point",
+        coordinates: [Number(location.lng), Number(location.lat)],
+      };
+    }
+
+    gym.name = name || gym.name;
+    gym.description = description || gym.description;
+    gym.address = address || gym.address;
+    gym.location = geoJsonLocation;
+    gym.amenities = amenities || gym.amenities;
+    gym.monthlySubscriptionFee =
+      monthlySubscriptionFee || gym.monthlySubscriptionFee;
+
+    if (images) {
+      gym.images = images;
+    }
+
+    const updatedGym = await gym.save();
+    res.json(updatedGym);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Get Owner's Gym
 // @route   GET /api/gyms/mygym
 // @access  Private/GymOwner
@@ -183,6 +242,7 @@ module.exports = {
   getGyms,
   getGymById,
   createGym,
+  updateGym,
   getMyGym,
   updateGymStatus,
   getPendingGyms,

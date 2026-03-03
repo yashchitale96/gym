@@ -5,6 +5,7 @@ const {
   getGyms,
   getGymById,
   createGym,
+  updateGym,
   getMyGym,
   updateGymStatus,
   getPendingGyms,
@@ -27,7 +28,10 @@ router
   .route("/admin/pending")
   .get(protect, authorize("SUPER_ADMIN"), getPendingGyms);
 
-router.route("/:id").get(getGymById);
+router
+  .route("/:id")
+  .get(getGymById)
+  .put(protect, authorize("GYM_OWNER", "SUPER_ADMIN"), updateGym);
 
 router
   .route("/:id/status")
