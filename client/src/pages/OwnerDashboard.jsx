@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import React, { useState, useEffect, useRef } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 import api from "../utils/api";
 import toast from "react-hot-toast";
 import {
@@ -21,10 +21,11 @@ const OwnerDashboard = () => {
   const [members, setMembers] = useState([]);
   const [revenue, setRevenue] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
-  const [scannerInit, setScannerInit] = useState(false);
+  const scannerRef = useRef(null);
   const [editingPlan, setEditingPlan] = useState(null);
   const [isEditingGym, setIsEditingGym] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [scannerError, setScannerError] = useState(null);
 
   // Form states
   const [gymForm, setGymForm] = useState({
@@ -99,51 +100,85 @@ const OwnerDashboard = () => {
 
   // QR Code Scanner Logic
   useEffect(() => {
-    if (activeTab === "scanner" && gym && !scannerInit) {
-      const scanner = new Html5QrcodeScanner(
-        "reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        false,
-      );
+    let html5QrCode;
 
-      scanner.render(
-        async (decodedText) => {
-          // Pause scanning
-          scanner.pause();
-          try {
-            const { data } = await api.post("/attendance/scan", {
-              qrCodeString: decodedText,
-            });
-            toast.success(`Attendance marked for ${data.memberName}`);
-            // Refresh attendance list
-            const { data: attendanceData } = await api.get(
-              `/attendance/gym/${gym._id}`,
-            );
-            setAttendances(attendanceData);
+    if (activeTab === "scanner" && gym && !scannerRef.current) {
+      html5QrCode = new Html5Qrcode("reader");
+      scannerRef.current = html5QrCode;
+      setScannerError(null); // Clear previous errors
 
-            // Resume after 3 seconds
-            setTimeout(() => scanner.resume(), 3000);
-          } catch (error) {
-            toast.error(error.response?.data?.message || "Invalid QR Code");
-            setTimeout(() => scanner.resume(), 2000);
-          }
-        },
-        (error) => {
-          // handle scan failure, usually better to ignore and keep scanning
-        },
-      );
+      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-      setScannerInit(true);
+      // Try starting the scanner directly with the back camera
+      html5QrCode
+        .start(
+          { facingMode: "environment" },
+          config,
+          async (decodedText) => {
+            // Pause scanning on successful read
+            if (html5QrCode.getState() === 2) {
+              // 2 = scanning
+              html5QrCode.pause(true);
+            }
+            try {
+              const { data } = await api.post("/attendance/scan", {
+                qrCodeString: decodedText,
+              });
+              toast.success(`Attendance marked for ${data.memberName}`);
+              // Refresh attendance list
+              const { data: attendanceData } = await api.get(
+                `/attendance/gym/${gym._id}`,
+              );
+              setAttendances(attendanceData);
 
-      return () => {
-        scanner
-          .clear()
-          .catch((error) =>
-            console.error("Failed to clear html5QrcodeScanner. ", error),
+              // Resume after 3 seconds
+              setTimeout(() => {
+                if (scannerRef.current && scannerRef.current.getState() === 3) {
+                  // 3 = paused
+                  scannerRef.current.resume();
+                }
+              }, 3000);
+            } catch (error) {
+              toast.error(error.response?.data?.message || "Invalid QR Code");
+              setTimeout(() => {
+                if (scannerRef.current && scannerRef.current.getState() === 3) {
+                  // 3 = paused
+                  scannerRef.current.resume();
+                }
+              }, 2000);
+            }
+          },
+          (errorMessage) => {
+            // Ignoring normal scan failures (e.g., no qr code detected in frame)
+          },
+        )
+        .catch((err) => {
+          console.error("Camera start error: ", err);
+          setScannerError(
+            "Camera access denied or device not found. Please ensure camera permissions are granted.",
           );
-      };
+          toast.error("Camera access denied or device not found.");
+        });
     }
-  }, [activeTab, gym, scannerInit]);
+
+    // Cleanup function strictly for unmounting or leaving the tab
+    return () => {
+      if ((activeTab !== "scanner" || !gym) && scannerRef.current) {
+        scannerRef.current
+          .stop()
+          .then(() => {
+            scannerRef.current.clear();
+            scannerRef.current = null;
+            setScannerError(null); // Clear error on cleanup
+          })
+          .catch((error) => {
+            console.error("Failed to clear html5Qrcode. ", error);
+            scannerRef.current = null;
+            setScannerError("Error stopping scanner.");
+          });
+      }
+    };
+  }, [activeTab, gym]);
 
   const handleImageChange = (e) => {
     if (e.target.files) {
@@ -302,10 +337,7 @@ const OwnerDashboard = () => {
         {["overview", "members", "scanner", "plans", "settings"].map((tab) => (
           <button
             key={tab}
-            onClick={() => {
-              setActiveTab(tab);
-              if (tab !== "scanner") setScannerInit(false);
-            }}
+            onClick={() => setActiveTab(tab)}
             disabled={!gym && tab !== "settings"}
             className={`px-4 py-2 rounded-t-lg transition-colors capitalize shrink-0 font-medium ${activeTab === tab ? "bg-zinc-800 text-primary border-b-2 border-primary" : "hover:bg-zinc-800/50 text-foreground/60"} disabled:opacity-50 disabled:cursor-not-allowed`}
           >
@@ -454,9 +486,14 @@ const OwnerDashboard = () => {
             their attendance for today.
           </p>
 
-          <div className="w-full max-w-sm bg-black rounded-2xl overflow-hidden border-2 border-primary/50 relative">
-            {/* The HTML5 QR component needs an empty div with this id */}
-            <div id="reader" width="600px"></div>
+          <div className="w-full max-w-sm bg-black rounded-2xl overflow-hidden border-2 border-primary/50 relative min-h-[250px] flex items-center justify-center">
+            {scannerError ? (
+              <div className="p-4 text-center text-red-400 text-sm">
+                {scannerError}
+              </div>
+            ) : (
+              <div id="reader" className="w-full h-full"></div>
+            )}
           </div>
         </div>
       )}
