@@ -26,6 +26,7 @@ const OwnerDashboard = () => {
   const [isEditingGym, setIsEditingGym] = useState(false);
   const [loading, setLoading] = useState(true);
   const [scannerError, setScannerError] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   // Form states
   const [gymForm, setGymForm] = useState({
@@ -99,68 +100,78 @@ const OwnerDashboard = () => {
   };
 
   // QR Code Scanner Logic
-  useEffect(() => {
-    let html5QrCode;
-
-    if (activeTab === "scanner" && gym && !scannerRef.current) {
-      html5QrCode = new Html5Qrcode("reader");
+  const startScanner = () => {
+    if (!scannerRef.current) {
+      const html5QrCode = new Html5Qrcode("reader");
       scannerRef.current = html5QrCode;
-      setScannerError(null); // Clear previous errors
+    }
 
-      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    setScannerError(null);
 
-      // Try starting the scanner directly with the back camera
-      html5QrCode
-        .start(
-          { facingMode: "environment" },
-          config,
-          async (decodedText) => {
-            // Pause scanning on successful read
-            if (html5QrCode.getState() === 2) {
-              // 2 = scanning
-              html5QrCode.pause(true);
-            }
-            try {
-              const { data } = await api.post("/attendance/scan", {
-                qrCodeString: decodedText,
-              });
-              toast.success(`Attendance marked for ${data.memberName}`);
-              // Refresh attendance list
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    scannerRef.current
+      .start(
+        { facingMode: "environment" },
+        config,
+        async (decodedText) => {
+          if (scannerRef.current.getState() === 2) {
+            scannerRef.current.pause(true);
+          }
+          try {
+            const { data } = await api.post("/attendance/scan", {
+              qrCodeString: decodedText,
+            });
+            toast.success(`Attendance marked for ${data.memberName}`);
+
+            if (gym) {
               const { data: attendanceData } = await api.get(
                 `/attendance/gym/${gym._id}`,
               );
               setAttendances(attendanceData);
-
-              // Resume after 3 seconds
-              setTimeout(() => {
-                if (scannerRef.current && scannerRef.current.getState() === 3) {
-                  // 3 = paused
-                  scannerRef.current.resume();
-                }
-              }, 3000);
-            } catch (error) {
-              toast.error(error.response?.data?.message || "Invalid QR Code");
-              setTimeout(() => {
-                if (scannerRef.current && scannerRef.current.getState() === 3) {
-                  // 3 = paused
-                  scannerRef.current.resume();
-                }
-              }, 2000);
             }
-          },
-          (errorMessage) => {
-            // Ignoring normal scan failures (e.g., no qr code detected in frame)
-          },
-        )
+
+            setTimeout(() => {
+              if (scannerRef.current && scannerRef.current.getState() === 3) {
+                scannerRef.current.resume();
+              }
+            }, 3000);
+          } catch (error) {
+            toast.error(error.response?.data?.message || "Invalid QR Code");
+            setTimeout(() => {
+              if (scannerRef.current && scannerRef.current.getState() === 3) {
+                scannerRef.current.resume();
+              }
+            }, 2000);
+          }
+        },
+        (errorMessage) => {},
+      )
+      .then(() => {
+        setIsScanning(true);
+      })
+      .catch((err) => {
+        console.error("Camera start error: ", err);
+        setScannerError("Camera access denied or device not found.");
+        toast.error("Camera access denied or device not found.");
+        setIsScanning(false);
+      });
+  };
+
+  const stopScanner = () => {
+    if (scannerRef.current) {
+      scannerRef.current
+        .stop()
+        .then(() => {
+          setIsScanning(false);
+        })
         .catch((err) => {
-          console.error("Camera start error: ", err);
-          setScannerError(
-            "Camera access denied or device not found. Please ensure camera permissions are granted.",
-          );
-          toast.error("Camera access denied or device not found.");
+          console.error("Error stopping scanner", err);
         });
     }
+  };
 
+  useEffect(() => {
     // Cleanup function strictly for unmounting or leaving the tab
     return () => {
       if ((activeTab !== "scanner" || !gym) && scannerRef.current) {
@@ -169,12 +180,13 @@ const OwnerDashboard = () => {
           .then(() => {
             scannerRef.current.clear();
             scannerRef.current = null;
-            setScannerError(null); // Clear error on cleanup
+            setIsScanning(false);
+            setScannerError(null);
           })
           .catch((error) => {
             console.error("Failed to clear html5Qrcode. ", error);
             scannerRef.current = null;
-            setScannerError("Error stopping scanner.");
+            setIsScanning(false);
           });
       }
     };
@@ -486,13 +498,35 @@ const OwnerDashboard = () => {
             their attendance for today.
           </p>
 
-          <div className="w-full max-w-sm bg-black rounded-2xl overflow-hidden border-2 border-primary/50 relative min-h-[250px] flex items-center justify-center">
+          <div className="w-full max-w-sm bg-black rounded-2xl overflow-hidden border-2 border-primary/50 relative min-h-[250px] flex flex-col items-center justify-center">
             {scannerError ? (
               <div className="p-4 text-center text-red-400 text-sm">
                 {scannerError}
               </div>
             ) : (
-              <div id="reader" className="w-full h-full"></div>
+              <div id="reader" className="w-full h-full bg-black"></div>
+            )}
+
+            {!isScanning && !scannerError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
+                <button
+                  onClick={startScanner}
+                  className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-bold shadow-lg hover:bg-primary/90 transition"
+                >
+                  Start Scan
+                </button>
+              </div>
+            )}
+
+            {isScanning && (
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center z-10">
+                <button
+                  onClick={stopScanner}
+                  className="bg-red-500 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-red-600 transition"
+                >
+                  Stop Scan
+                </button>
+              </div>
             )}
           </div>
         </div>
