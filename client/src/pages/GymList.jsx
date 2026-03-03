@@ -1,0 +1,117 @@
+import React, { useState, useEffect } from "react";
+import { Search, MapPin, IndianRupee } from "lucide-react";
+import { Link } from "react-router-dom";
+import api from "../utils/api";
+import toast from "react-hot-toast";
+
+const GymList = () => {
+  const [gyms, setGyms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    const fetchGyms = async () => {
+      try {
+        const { data } = await api.get("/gyms");
+        setGyms(data);
+      } catch (error) {
+        toast.error("Failed to load gyms");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGyms();
+  }, []);
+
+  const filteredGyms = gyms.filter(
+    (gym) =>
+      gym.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      gym.address.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
+  if (loading)
+    return (
+      <div className="flex justify-center p-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-8">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-2">
+            Discover <span className="text-gradient">Gyms</span>
+          </h1>
+          <p className="text-lg text-foreground/60">
+            Find the perfect fitness center near you.
+          </p>
+        </div>
+        <div className="relative w-full md:w-96 group">
+          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground/40 group-focus-within:text-primary transition-colors z-10" />
+          <input
+            type="text"
+            placeholder="Search by name or location..."
+            className="relative w-full pl-12 pr-4 py-3 bg-black/40 border border-white/10 rounded-full focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 backdrop-blur-md transition-all z-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {filteredGyms.length === 0 ? (
+        <div className="text-center py-12 text-foreground/60">
+          No gyms found matching your search.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 text-foreground/60 lg:grid-cols-3 gap-6">
+          {filteredGyms.map((gym) => (
+            <Link
+              to={`/gyms/${gym._id}`}
+              key={gym._id}
+              className="group block h-full"
+            >
+              <div className="glass-card rounded-2xl overflow-hidden hover:border-primary/50 hover:shadow-[0_0_20px_rgba(225,29,72,0.15)] hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
+                <div className="h-48 bg-zinc-800 relative">
+                  {gym.images && gym.images[0] ? (
+                    <img
+                      src={gym.images[0]}
+                      alt={gym.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-zinc-600">
+                      No Image provided.
+                    </div>
+                  )}
+                </div>
+                <div className="p-5 flex-1 flex flex-col">
+                  <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+                    {gym.name}
+                  </h3>
+                  <div className="flex items-start text-foreground/60 text-sm mb-4">
+                    <MapPin className="h-4 w-4 mr-1 mt-0.5 shrink-0" />
+                    <span>{gym.address}</span>
+                  </div>
+                  <div className="mt-auto flex items-center justify-between">
+                    <div className="flex items-center text-primary font-medium">
+                      <IndianRupee className="h-4 w-4 mr-1" />
+                      <span>{gym.monthlySubscriptionFee} / mo</span>
+                    </div>
+                    <span className="text-sm font-medium bg-primary/10 text-primary border border-primary/20 px-4 py-2 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
+                      View Details
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default GymList;
