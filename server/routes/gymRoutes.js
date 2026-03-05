@@ -10,6 +10,8 @@ const {
   updateGymStatus,
   getPendingGyms,
   uploadGymImages,
+  getAllGymsAdmin,
+  getDashboardStats,
 } = require("../controllers/gymController");
 const { protect, authorize } = require("../middlewares/authMiddleware");
 
@@ -27,6 +29,14 @@ router.route("/mygym").get(protect, authorize("GYM_OWNER"), getMyGym);
 router
   .route("/admin/pending")
   .get(protect, authorize("SUPER_ADMIN"), getPendingGyms);
+
+router
+  .route("/admin/all")
+  .get(protect, authorize("SUPER_ADMIN"), getAllGymsAdmin);
+
+router
+  .route("/admin/stats")
+  .get(protect, authorize("SUPER_ADMIN"), getDashboardStats);
 
 router
   .route("/:id")

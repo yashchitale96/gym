@@ -13,6 +13,7 @@ import {
   X,
   CheckCircle2,
 } from "lucide-react";
+import AnalyticsDashboard from "../components/AnalyticsDashboard";
 
 const OwnerDashboard = () => {
   const [gym, setGym] = useState(null);
@@ -361,68 +362,7 @@ const OwnerDashboard = () => {
       {/* Tab Contents */}
 
       {activeTab === "overview" && gym && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-card border border-border p-6 rounded-xl flex flex-col items-center justify-center text-center">
-              <Activity className="h-8 w-8 text-primary mb-2" />
-              <div className="text-3xl font-bold mb-1">
-                {attendances.length}
-              </div>
-              <div className="text-sm text-foreground/60">
-                Today's Attendance
-              </div>
-            </div>
-            <div className="bg-card border border-border p-6 rounded-xl flex flex-col items-center justify-center text-center">
-              <Users className="h-8 w-8 text-blue-400 mb-2" />
-              <div className="text-3xl font-bold mb-1">{members.length}</div>
-              <div className="text-sm text-foreground/60">Total Members</div>
-            </div>
-            <div className="bg-card border border-border p-6 rounded-xl flex flex-col items-center justify-center text-center">
-              <IndianRupee className="h-8 w-8 text-green-400 mb-2" />
-              <div className="text-3xl font-bold mb-1">
-                ₹{revenue?.totalRevenue || 0}
-              </div>
-              <div className="text-sm text-foreground/60">Total Revenue</div>
-            </div>
-            <div className="bg-card border border-border p-6 rounded-xl flex flex-col items-center justify-center text-center">
-              <IndianRupee className="h-8 w-8 text-yellow-400 mb-2" />
-              <div className="text-3xl font-bold mb-1">
-                ₹{revenue?.monthlyRevenue || 0}
-              </div>
-              <div className="text-sm text-foreground/60">This Month</div>
-            </div>
-          </div>
-
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-border font-bold">
-              Today's Check-ins
-            </div>
-            {attendances.length === 0 ? (
-              <div className="p-8 text-center text-foreground/60">
-                No attendances recorded today.
-              </div>
-            ) : (
-              <ul className="divide-y divide-border">
-                {attendances.map((record) => (
-                  <li
-                    key={record._id}
-                    className="p-4 flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {record.userId?.name || "Unknown User"}
-                      </p>
-                      <p className="text-xs text-foreground/60">
-                        {new Date(record.date).toLocaleTimeString()}
-                      </p>
-                    </div>
-                    <CheckCircle2 className="text-green-500 h-5 w-5" />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+        <AnalyticsDashboard gymId={gym._id} />
       )}
 
       {/* Members Tab */}

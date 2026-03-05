@@ -1,4 +1,6 @@
 const Gym = require("../models/Gym");
+const User = require("../models/User");
+const Membership = require("../models/Membership");
 
 // @desc    Get all approved gyms (with search & filtering)
 // @route   GET /api/gyms
@@ -238,6 +240,49 @@ const uploadGymImages = async (req, res) => {
   }
 };
 
+// @desc    Get all gyms
+// @route   GET /api/gyms/admin/all
+// @access  Private/SuperAdmin
+const getAllGymsAdmin = async (req, res) => {
+  try {
+    const gyms = await Gym.find().sort({ createdAt: -1 });
+    res.json(gyms);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get Dashboard Statistics
+// @route   GET /api/gyms/admin/stats
+// @access  Private/SuperAdmin
+const getDashboardStats = async (req, res) => {
+  try {
+    const totalGyms = await Gym.countDocuments();
+    const pendingGyms = await Gym.countDocuments({ status: "PENDING" });
+    const approvedGyms = await Gym.countDocuments({ status: "APPROVED" });
+
+    const totalUsers = await User.countDocuments();
+    const gymOwners = await User.countDocuments({ role: "GYM_OWNER" });
+    const regularUsers = await User.countDocuments({ role: "USER" });
+
+    const activeMemberships = await Membership.countDocuments({
+      status: "ACTIVE",
+    });
+
+    res.json({
+      totalGyms,
+      pendingGyms,
+      approvedGyms,
+      totalUsers,
+      gymOwners,
+      regularUsers,
+      activeMemberships,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getGyms,
   getGymById,
@@ -247,4 +292,6 @@ module.exports = {
   updateGymStatus,
   getPendingGyms,
   uploadGymImages,
+  getAllGymsAdmin,
+  getDashboardStats,
 };
