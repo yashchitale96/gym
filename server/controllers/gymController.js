@@ -53,7 +53,7 @@ const getGyms = async (req, res) => {
 // @access  Public
 const getGymById = async (req, res) => {
   try {
-    const gym = await Gym.findById(req.params.id);
+    const gym = await Gym.findById(req.params.id).populate("ownerId", "name");
 
     if (gym && gym.status === "APPROVED") {
       res.json(gym);
@@ -75,6 +75,11 @@ const createGym = async (req, res) => {
     address,
     location, // expected to be { lat, lng } from frontend
     amenities,
+    contactPhone,
+    contactEmail,
+    website,
+    establishedYear,
+    capacity,
     monthlySubscriptionFee,
   } = req.body;
 
@@ -103,6 +108,11 @@ const createGym = async (req, res) => {
       location: geoJsonLocation,
       images: req.body.images || [], // Handle cloud proxy image urls if passed
       amenities,
+      contactPhone,
+      contactEmail,
+      website,
+      establishedYear,
+      capacity,
       monthlySubscriptionFee,
     });
 
@@ -139,6 +149,11 @@ const updateGym = async (req, res) => {
       address,
       location, // expected to be { lat, lng } from frontend
       amenities,
+      contactPhone,
+      contactEmail,
+      website,
+      establishedYear,
+      capacity,
       monthlySubscriptionFee,
       images,
     } = req.body;
@@ -157,6 +172,11 @@ const updateGym = async (req, res) => {
     gym.address = address || gym.address;
     gym.location = geoJsonLocation;
     gym.amenities = amenities || gym.amenities;
+    if (contactPhone !== undefined) gym.contactPhone = contactPhone;
+    if (contactEmail !== undefined) gym.contactEmail = contactEmail;
+    if (website !== undefined) gym.website = website;
+    if (establishedYear !== undefined) gym.establishedYear = establishedYear;
+    if (capacity !== undefined) gym.capacity = capacity;
     gym.monthlySubscriptionFee =
       monthlySubscriptionFee || gym.monthlySubscriptionFee;
 

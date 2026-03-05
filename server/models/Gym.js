@@ -40,6 +40,21 @@ const gymSchema = new mongoose.Schema(
         type: String,
       },
     ],
+    contactPhone: {
+      type: String,
+    },
+    contactEmail: {
+      type: String,
+    },
+    website: {
+      type: String,
+    },
+    establishedYear: {
+      type: Number,
+    },
+    capacity: {
+      type: String,
+    },
     monthlySubscriptionFee: {
       type: Number,
       default: 0,

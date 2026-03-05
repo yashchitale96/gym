@@ -36,6 +36,11 @@ const OwnerDashboard = () => {
     name: "",
     description: "",
     address: "",
+    contactPhone: "",
+    contactEmail: "",
+    website: "",
+    establishedYear: "",
+    capacity: "",
     monthlySubscriptionFee: 0,
     images: [],
   });
@@ -71,6 +76,11 @@ const OwnerDashboard = () => {
           name: gymData.name,
           description: gymData.description,
           address: gymData.address,
+          contactPhone: gymData.contactPhone || "",
+          contactEmail: gymData.contactEmail || "",
+          website: gymData.website || "",
+          establishedYear: gymData.establishedYear || "",
+          capacity: gymData.capacity || "",
           monthlySubscriptionFee: gymData.monthlySubscriptionFee,
           images: gymData.images || [],
         });
@@ -224,6 +234,11 @@ const OwnerDashboard = () => {
           name: data.name,
           description: data.description,
           address: data.address,
+          contactPhone: data.contactPhone || "",
+          contactEmail: data.contactEmail || "",
+          website: data.website || "",
+          establishedYear: data.establishedYear || "",
+          capacity: data.capacity || "",
           monthlySubscriptionFee: data.monthlySubscriptionFee,
           images: data.images || [],
           location: data.location?.coordinates
@@ -874,6 +889,84 @@ const OwnerDashboard = () => {
                 className="w-full bg-background border border-border rounded-md px-3 py-2 h-32 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
                 disabled={!!gym && !isEditingGym}
               ></textarea>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Contact Phone
+                </label>
+                <input
+                  type="text"
+                  value={gymForm.contactPhone || ""}
+                  onChange={(e) =>
+                    setGymForm({ ...gymForm, contactPhone: e.target.value })
+                  }
+                  className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
+                  disabled={!!gym && !isEditingGym}
+                  placeholder="+91 98765 43210"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Contact Email
+                </label>
+                <input
+                  type="email"
+                  value={gymForm.contactEmail || ""}
+                  onChange={(e) =>
+                    setGymForm({ ...gymForm, contactEmail: e.target.value })
+                  }
+                  className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
+                  disabled={!!gym && !isEditingGym}
+                  placeholder="gym@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Website URL
+                </label>
+                <input
+                  type="url"
+                  value={gymForm.website || ""}
+                  onChange={(e) =>
+                    setGymForm({ ...gymForm, website: e.target.value })
+                  }
+                  className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
+                  disabled={!!gym && !isEditingGym}
+                  placeholder="https://mygym.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Year Established
+                </label>
+                <input
+                  type="number"
+                  value={gymForm.establishedYear || ""}
+                  onChange={(e) =>
+                    setGymForm({ ...gymForm, establishedYear: e.target.value })
+                  }
+                  className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
+                  disabled={!!gym && !isEditingGym}
+                  placeholder="2010"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Maximum Capacity
+                </label>
+                <input
+                  type="text"
+                  value={gymForm.capacity || ""}
+                  onChange={(e) =>
+                    setGymForm({ ...gymForm, capacity: e.target.value })
+                  }
+                  className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
+                  disabled={!!gym && !isEditingGym}
+                  placeholder="e.g. 100+"
+                />
+              </div>
             </div>
 
             <div>

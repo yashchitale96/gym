@@ -13,6 +13,11 @@ import {
   Activity,
   Building2,
   MoreVertical,
+  Phone,
+  Mail,
+  Globe,
+  Calendar,
+  Users as UsersIcon,
 } from "lucide-react";
 
 const StatCard = ({ title, value, icon: Icon, color, bg }) => (
@@ -283,6 +288,37 @@ const AdminDashboard = () => {
                       <div className="text-sm bg-background border border-border p-3 rounded-lg text-foreground/70 mt-3 line-clamp-2">
                         {gym.description}
                       </div>
+
+                      {/* New Metadata Grid for Admins */}
+                      <div className="grid grid-cols-2 gap-3 mt-4 text-xs font-medium text-foreground/70 p-4 border border-border/50 rounded-lg bg-card/50">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-3.5 h-3.5 text-primary/70" />
+                          {gym.contactPhone || "No Phone"}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-3.5 h-3.5 text-primary/70" />
+                          <span className="truncate">
+                            {gym.contactEmail || "No Email"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-3.5 h-3.5 text-primary/70" />
+                          <span className="truncate">
+                            {gym.website || "No Website"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-primary/70" />
+                          {gym.establishedYear
+                            ? `Est. ${gym.establishedYear}`
+                            : "No Year"}
+                        </div>
+                        <div className="flex items-center gap-2 col-span-2">
+                          <UsersIcon className="w-3.5 h-3.5 text-primary/70" />
+                          Capacity: {gym.capacity || "Not specified"}
+                        </div>
+                      </div>
+
                       <div className="text-sm font-medium pt-2 flex items-center gap-4">
                         <span>
                           Fee:{" "}

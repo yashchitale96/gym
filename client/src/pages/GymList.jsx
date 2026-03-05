@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Search, MapPin, IndianRupee, Navigation } from "lucide-react";
+import {
+  Search,
+  MapPin,
+  IndianRupee,
+  Navigation,
+  Star,
+  Users,
+  Calendar,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../utils/api";
 import toast from "react-hot-toast";
@@ -168,14 +176,39 @@ const GymList = () => {
                       No Image provided.
                     </div>
                   )}
+                  {/* Rating Badge Overlay */}
+                  {gym.ratings && gym.ratings.count > 0 && (
+                    <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/20 flex items-center gap-1.5 shadow-lg z-10">
+                      <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                      <span className="text-white text-xs font-bold">
+                        {gym.ratings.average.toFixed(1)}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="p-5 flex-1 flex flex-col">
-                  <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+                  <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">
                     {gym.name}
                   </h3>
-                  <div className="flex items-start text-foreground/60 text-sm mb-4">
+                  <div className="flex items-start text-foreground/60 text-sm mb-3 line-clamp-2">
                     <MapPin className="h-4 w-4 mr-1 mt-0.5 shrink-0" />
                     <span>{gym.address}</span>
+                  </div>
+
+                  {/* Quick Stats Row */}
+                  <div className="flex items-center gap-4 mb-4 text-xs text-foreground/50 font-medium">
+                    {gym.establishedYear && (
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-primary/70" />
+                        <span>Est. {gym.establishedYear}</span>
+                      </div>
+                    )}
+                    {gym.capacity && (
+                      <div className="flex items-center gap-1">
+                        <Users className="w-3 h-3 text-primary/70" />
+                        <span>Up to {gym.capacity}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="mt-auto flex items-center justify-between">
                     <div className="flex items-center text-primary font-medium">
