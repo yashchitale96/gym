@@ -9,6 +9,7 @@ const gymRoutes = require("./routes/gymRoutes");
 const planRoutes = require("./routes/planRoutes");
 const membershipRoutes = require("./routes/membershipRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
+const trainerRoutes = require("./routes/trainerRoutes");
 
 // Load environment variables
 dotenv.config();
@@ -54,6 +55,7 @@ app.use("/api/gyms", gymRoutes);
 app.use("/api/plans", planRoutes);
 app.use("/api/memberships", membershipRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/trainers", trainerRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({

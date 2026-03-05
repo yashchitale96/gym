@@ -17,6 +17,11 @@ const membershipSchema = new mongoose.Schema(
       ref: "Plan",
       required: true,
     },
+    trainerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null, // Only filled if assigned to a trainer
+    },
     startDate: {
       type: Date,
       required: true,

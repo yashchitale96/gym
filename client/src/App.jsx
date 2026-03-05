@@ -15,6 +15,7 @@ import GymDetails from "./pages/GymDetails";
 import UserDashboard from "./pages/UserDashboard";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import TrainerDashboard from "./pages/TrainerDashboard";
 
 function App() {
   return (
@@ -54,6 +55,11 @@ function App() {
             {/* Protected Admin Routes */}
             <Route element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]} />}>
               <Route path="/admin" element={<AdminDashboard />} />
+            </Route>
+
+            {/* Protected Trainer Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["TRAINER"]} />}>
+              <Route path="/trainer" element={<TrainerDashboard />} />
             </Route>
           </Route>
 

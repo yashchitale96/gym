@@ -12,6 +12,7 @@ import {
   Edit3,
   X,
   CheckCircle2,
+  UserPlus,
 } from "lucide-react";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
 
@@ -20,6 +21,7 @@ const OwnerDashboard = () => {
   const [plans, setPlans] = useState([]);
   const [attendances, setAttendances] = useState([]);
   const [members, setMembers] = useState([]);
+  const [trainers, setTrainers] = useState([]);
   const [revenue, setRevenue] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const scannerRef = useRef(null);
@@ -35,9 +37,9 @@ const OwnerDashboard = () => {
     description: "",
     address: "",
     monthlySubscriptionFee: 0,
-    images: [], // To track current images from backend or new uploads
+    images: [],
   });
-  const [selectedImages, setSelectedImages] = useState([]); // To hold File objects
+  const [selectedImages, setSelectedImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [planForm, setPlanForm] = useState({
     name: "",
@@ -46,6 +48,15 @@ const OwnerDashboard = () => {
     description: "",
   });
 
+  // Trainer Form
+  const [trainerForm, setTrainerForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+  });
+  const [showAddTrainer, setShowAddTrainer] = useState(false);
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -53,7 +64,6 @@ const OwnerDashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // Get Gym Info
       try {
         const { data: gymData } = await api.get("/gyms/mygym");
         setGym(gymData);
@@ -65,29 +75,28 @@ const OwnerDashboard = () => {
           images: gymData.images || [],
         });
 
-        // Get Plans
         const { data: plansData } = await api.get(`/plans/gym/${gymData._id}`);
         setPlans(plansData);
 
-        // Get Today's Attendance
         const { data: attendanceData } = await api.get(
           `/attendance/gym/${gymData._id}`,
         );
         setAttendances(attendanceData);
 
-        // Get Members
         const { data: membersData } = await api.get(
           `/memberships/gym/${gymData._id}`,
         );
         setMembers(membersData);
 
-        // Get Revenue
+        // Fetch Trainers
+        const { data: trainersData } = await api.get("/trainers");
+        setTrainers(trainersData);
+
         const { data: revenueData } = await api.get(
           `/memberships/gym/${gymData._id}/revenue`,
         );
         setRevenue(revenueData);
       } catch (err) {
-        // Gym might not exist yet for this owner
         if (err.response?.status === 404) {
           setGym(null);
           setActiveTab("settings");
@@ -100,7 +109,6 @@ const OwnerDashboard = () => {
     }
   };
 
-  // QR Code Scanner Logic
   const startScanner = () => {
     if (!scannerRef.current) {
       const html5QrCode = new Html5Qrcode("reader");
@@ -108,7 +116,6 @@ const OwnerDashboard = () => {
     }
 
     setScannerError(null);
-
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
     scannerRef.current
@@ -146,13 +153,10 @@ const OwnerDashboard = () => {
             }, 2000);
           }
         },
-        (errorMessage) => {},
+        () => {},
       )
-      .then(() => {
-        setIsScanning(true);
-      })
+      .then(() => setIsScanning(true))
       .catch((err) => {
-        console.error("Camera start error: ", err);
         setScannerError("Camera access denied or device not found.");
         toast.error("Camera access denied or device not found.");
         setIsScanning(false);
@@ -163,17 +167,12 @@ const OwnerDashboard = () => {
     if (scannerRef.current) {
       scannerRef.current
         .stop()
-        .then(() => {
-          setIsScanning(false);
-        })
-        .catch((err) => {
-          console.error("Error stopping scanner", err);
-        });
+        .then(() => setIsScanning(false))
+        .catch(console.error);
     }
   };
 
   useEffect(() => {
-    // Cleanup function strictly for unmounting or leaving the tab
     return () => {
       if ((activeTab !== "scanner" || !gym) && scannerRef.current) {
         scannerRef.current
@@ -185,7 +184,6 @@ const OwnerDashboard = () => {
             setScannerError(null);
           })
           .catch((error) => {
-            console.error("Failed to clear html5Qrcode. ", error);
             scannerRef.current = null;
             setIsScanning(false);
           });
@@ -199,33 +197,10 @@ const OwnerDashboard = () => {
     }
   };
 
-  const uploadImages = async () => {
-    if (selectedImages.length === 0) return [];
-
-    const formData = new FormData();
-    selectedImages.forEach((image) => {
-      formData.append("images", image);
-    });
-
-    try {
-      setUploadingImages(true);
-      const { data } = await api.post("/gyms/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      return data.urls;
-    } catch (error) {
-      toast.error("Failed to upload images");
-      return null;
-    } finally {
-      setUploadingImages(false);
-    }
-  };
-
   const handleGymSubmit = async (e) => {
     e.preventDefault();
     setUploadingImages(true);
     try {
-      // Upload images if any
       let uploadedImageUrls = [];
       if (selectedImages.length > 0) {
         const formData = new FormData();
@@ -243,7 +218,6 @@ const OwnerDashboard = () => {
       };
 
       if (gym) {
-        // Update existing gym
         const { data } = await api.put(`/gyms/${gym._id}`, payload);
         setGym(data);
         setGymForm({
@@ -259,11 +233,10 @@ const OwnerDashboard = () => {
               }
             : null,
         });
-        setSelectedImages([]); // Clear selected images after successful upload/update
+        setSelectedImages([]);
         setIsEditingGym(false);
         toast.success("Gym Profile updated successfully!");
       } else {
-        // Create new gym
         const { data } = await api.post("/gyms", payload);
         setGym(data);
         toast.success(
@@ -300,7 +273,6 @@ const OwnerDashboard = () => {
       await api.put(`/plans/${planId}`, editingPlan);
       toast.success("Plan updated successfully!");
       setEditingPlan(null);
-      // Refresh plans
       if (gym) {
         const { data } = await api.get(`/plans/gym/${gym._id}`);
         setPlans(data);
@@ -322,6 +294,36 @@ const OwnerDashboard = () => {
       }
     } catch (error) {
       toast.error("Failed to toggle plan status");
+    }
+  };
+
+  const handleAddTrainer = async (e) => {
+    e.preventDefault();
+    try {
+      const { data } = await api.post("/trainers", trainerForm);
+      setTrainers([...trainers, data]);
+      setTrainerForm({ name: "", email: "", phone: "", password: "" });
+      setShowAddTrainer(false);
+      toast.success("Trainer added successfully!");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to add trainer");
+    }
+  };
+
+  const handleAssignTrainer = async (membershipId, trainerId) => {
+    try {
+      await api.put(`/trainers/assign/${membershipId}`, {
+        trainerId: trainerId || null,
+      });
+      toast.success("Trainer assigned successfully");
+
+      // Refresh members list
+      const { data: membersData } = await api.get(
+        `/memberships/gym/${gym._id}`,
+      );
+      setMembers(membersData);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to assign trainer");
     }
   };
 
@@ -347,16 +349,18 @@ const OwnerDashboard = () => {
 
       {/* Navigation Tabs */}
       <div className="flex space-x-1 border-b border-border mb-6 overflow-x-auto pb-1">
-        {["overview", "members", "scanner", "plans", "settings"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            disabled={!gym && tab !== "settings"}
-            className={`px-4 py-2 rounded-t-lg transition-colors capitalize shrink-0 font-medium ${activeTab === tab ? "bg-zinc-800 text-primary border-b-2 border-primary" : "hover:bg-zinc-800/50 text-foreground/60"} disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {tab}
-          </button>
-        ))}
+        {["overview", "members", "staff", "scanner", "plans", "settings"].map(
+          (tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              disabled={!gym && tab !== "settings"}
+              className={`px-4 py-2 rounded-t-lg transition-colors capitalize shrink-0 font-medium ${activeTab === tab ? "bg-zinc-800 text-primary border-b-2 border-primary" : "hover:bg-zinc-800/50 text-foreground/60"} disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {tab}
+            </button>
+          ),
+        )}
       </div>
 
       {/* Tab Contents */}
@@ -377,57 +381,198 @@ const OwnerDashboard = () => {
             </div>
           ) : (
             <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-zinc-800/50">
-                    <th className="text-left p-4 font-semibold">Name</th>
-                    <th className="text-left p-4 font-semibold">Email</th>
-                    <th className="text-left p-4 font-semibold">Phone</th>
-                    <th className="text-left p-4 font-semibold">Plan</th>
-                    <th className="text-left p-4 font-semibold">Status</th>
-                    <th className="text-left p-4 font-semibold">Expires</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {members.map((m) => (
-                    <tr
-                      key={m._id}
-                      className="border-b border-border/50 hover:bg-zinc-800/30"
-                    >
-                      <td className="p-4 font-medium">
-                        {m.userId?.name || "N/A"}
-                      </td>
-                      <td className="p-4 text-foreground/70">
-                        {m.userId?.email || "N/A"}
-                      </td>
-                      <td className="p-4 text-foreground/70">
-                        {m.userId?.phone || "N/A"}
-                      </td>
-                      <td className="p-4 text-foreground/70">
-                        {m.planId?.name || "N/A"}
-                      </td>
-                      <td className="p-4">
-                        <span
-                          className={`text-xs px-2 py-1 rounded-md font-bold ${m.status === "ACTIVE" && new Date(m.endDate) > new Date() ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
-                        >
-                          {m.status === "ACTIVE" &&
-                          new Date(m.endDate) > new Date()
-                            ? "Active"
-                            : "Expired"}
-                        </span>
-                      </td>
-                      <td className="p-4 text-foreground/70">
-                        {new Date(m.endDate).toLocaleDateString()}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-zinc-800/50">
+                      <th className="text-left p-4 font-semibold">Name</th>
+                      <th className="text-left p-4 font-semibold">Email</th>
+                      <th className="text-left p-4 font-semibold">Plan</th>
+                      <th className="text-left p-4 font-semibold">Status</th>
+                      <th className="text-left p-4 font-semibold text-center mt-0">
+                        Personal Trainer
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {members.map((m) => (
+                      <tr
+                        key={m._id}
+                        className="border-b border-border/50 hover:bg-zinc-800/30"
+                      >
+                        <td className="p-4 font-medium">
+                          {m.userId?.name || "N/A"}
+                        </td>
+                        <td className="p-4 text-foreground/70">
+                          {m.userId?.email || "N/A"}
+                        </td>
+                        <td className="p-4 text-foreground/70">
+                          {m.planId?.name || "N/A"}
+                        </td>
+                        <td className="p-4">
+                          <span
+                            className={`text-xs px-2 py-1 rounded-md font-bold ${m.status === "ACTIVE" && new Date(m.endDate) > new Date() ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}
+                          >
+                            {m.status === "ACTIVE" &&
+                            new Date(m.endDate) > new Date()
+                              ? "Active"
+                              : "Expired"}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <select
+                            value={m.trainerId || ""}
+                            onChange={(e) =>
+                              handleAssignTrainer(m._id, e.target.value)
+                            }
+                            disabled={
+                              m.status !== "ACTIVE" ||
+                              new Date(m.endDate) <= new Date()
+                            }
+                            className="w-full bg-background border border-border rounded-md px-2 py-1 text-sm focus:ring-1 focus:ring-primary focus:outline-none disabled:opacity-50"
+                          >
+                            <option value="">No Trainer</option>
+                            {trainers.map((t) => (
+                              <option key={t._id} value={t._id}>
+                                {t.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
       )}
 
+      {/* Staff Tab */}
+      {activeTab === "staff" && gym && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Users /> Staff Management
+            </h2>
+            <button
+              onClick={() => setShowAddTrainer(!showAddTrainer)}
+              className="bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 px-4 py-2 rounded-md transition-colors flex items-center gap-2 font-medium"
+            >
+              {showAddTrainer ? (
+                <X className="w-4 h-4" />
+              ) : (
+                <UserPlus className="w-4 h-4" />
+              )}
+              {showAddTrainer ? "Cancel" : "Add Trainer"}
+            </button>
+          </div>
+
+          {showAddTrainer && (
+            <form
+              onSubmit={handleAddTrainer}
+              className="bg-card p-6 border border-border rounded-xl space-y-4 max-w-2xl animate-in fade-in slide-in-from-top-4"
+            >
+              <h3 className="font-bold border-b border-border pb-2 mb-4">
+                Create Trainer Account
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={trainerForm.name}
+                    onChange={(e) =>
+                      setTrainerForm({ ...trainerForm, name: e.target.value })
+                    }
+                    className="w-full bg-background border border-border rounded-md px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Email
+                  </label>
+                  <input
+                    required
+                    type="email"
+                    value={trainerForm.email}
+                    onChange={(e) =>
+                      setTrainerForm({ ...trainerForm, email: e.target.value })
+                    }
+                    className="w-full bg-background border border-border rounded-md px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Phone
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={trainerForm.phone}
+                    onChange={(e) =>
+                      setTrainerForm({ ...trainerForm, phone: e.target.value })
+                    }
+                    className="w-full bg-background border border-border rounded-md px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Password
+                  </label>
+                  <input
+                    required
+                    type="password"
+                    value={trainerForm.password}
+                    onChange={(e) =>
+                      setTrainerForm({
+                        ...trainerForm,
+                        password: e.target.value,
+                      })
+                    }
+                    className="w-full bg-background border border-border rounded-md px-3 py-2"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 font-medium"
+              >
+                Create Trainer
+              </button>
+            </form>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {trainers.map((trainer) => (
+              <div
+                key={trainer._id}
+                className="bg-card border border-border p-5 rounded-xl flex items-start justify-between"
+              >
+                <div>
+                  <h4 className="font-bold text-lg mb-1">{trainer.name}</h4>
+                  <p className="text-sm text-foreground/70">{trainer.email}</p>
+                  <p className="text-sm text-foreground/70">{trainer.phone}</p>
+                  <div className="mt-3 inline-block bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded text-xs font-bold">
+                    TRAINER
+                  </div>
+                </div>
+              </div>
+            ))}
+            {trainers.length === 0 && !showAddTrainer && (
+              <div className="col-span-full text-center py-12 text-foreground/60 border-2 border-dashed border-border rounded-xl">
+                No trainers have been added to your gym yet.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Scanner Tab */}
       {activeTab === "scanner" && gym && (
         <div className="flex flex-col items-center space-y-4">
           <h2 className="text-xl font-bold flex items-center gap-2">
@@ -437,7 +582,6 @@ const OwnerDashboard = () => {
             Ask the user to open their dashboard and scan the QR code to mark
             their attendance for today.
           </p>
-
           <div className="w-full max-w-sm bg-black rounded-2xl overflow-hidden border-2 border-primary/50 relative min-h-[250px] flex flex-col items-center justify-center">
             {scannerError ? (
               <div className="p-4 text-center text-red-400 text-sm">
@@ -446,7 +590,6 @@ const OwnerDashboard = () => {
             ) : (
               <div id="reader" className="w-full h-full bg-black"></div>
             )}
-
             {!isScanning && !scannerError && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
                 <button
@@ -457,7 +600,6 @@ const OwnerDashboard = () => {
                 </button>
               </div>
             )}
-
             {isScanning && (
               <div className="absolute bottom-4 left-0 right-0 flex justify-center z-10">
                 <button
@@ -472,6 +614,7 @@ const OwnerDashboard = () => {
         </div>
       )}
 
+      {/* Plans Tab */}
       {activeTab === "plans" && gym && (
         <div className="space-y-6">
           <form
@@ -656,6 +799,7 @@ const OwnerDashboard = () => {
         </div>
       )}
 
+      {/* Settings Tab */}
       {activeTab === "settings" && (
         <div className="max-w-2xl mx-auto">
           <form
@@ -697,7 +841,6 @@ const OwnerDashboard = () => {
                   setGymForm({ ...gymForm, name: e.target.value })
                 }
                 className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
-                placeholder="e.g. Iron Forge Fitness"
                 disabled={!!gym && !isEditingGym}
               />
             </div>
@@ -714,7 +857,6 @@ const OwnerDashboard = () => {
                   setGymForm({ ...gymForm, address: e.target.value })
                 }
                 className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
-                placeholder="e.g. 123 Main St, City, State"
                 disabled={!!gym && !isEditingGym}
               />
             </div>
@@ -730,7 +872,6 @@ const OwnerDashboard = () => {
                   setGymForm({ ...gymForm, description: e.target.value })
                 }
                 className="w-full bg-background border border-border rounded-md px-3 py-2 h-32 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
-                placeholder="Describe your gym, equipment, rules, etc."
                 disabled={!!gym && !isEditingGym}
               ></textarea>
             </div>
@@ -756,11 +897,7 @@ const OwnerDashboard = () => {
                             });
                             toast.success("Location captured successfully!");
                           },
-                          (error) => {
-                            toast.error(
-                              "Failed to get location. Please allow location access.",
-                            );
-                          },
+                          () => toast.error("Failed to get location."),
                         );
                       } else {
                         toast.error(
@@ -776,8 +913,8 @@ const OwnerDashboard = () => {
               </label>
               {gymForm.location && gymForm.location.lat ? (
                 <div className="text-sm bg-background border border-border rounded-md px-3 py-2 text-foreground/80 flex items-center gap-2 disabled:opacity-50">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  Lat: {gymForm.location.lat.toFixed(4)}, Lng:{" "}
+                  <CheckCircle2 className="h-4 w-4 text-green-500" /> Lat:{" "}
+                  {gymForm.location.lat.toFixed(4)}, Lng:{" "}
                   {gymForm.location.lng.toFixed(4)}
                 </div>
               ) : (
@@ -802,7 +939,6 @@ const OwnerDashboard = () => {
                   className="w-full bg-background border border-border rounded-md px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-colors"
                 />
               )}
-              {/* Preview Selected Local Images */}
               {selectedImages.length > 0 && (!gym || isEditingGym) && (
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                   {selectedImages.map((img, i) => (
@@ -819,7 +955,6 @@ const OwnerDashboard = () => {
                   ))}
                 </div>
               )}
-              {/* Show Existing Remote Images */}
               {gymForm.images && gymForm.images.length > 0 && (
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                   {gymForm.images.map((url, i) => (
@@ -835,14 +970,14 @@ const OwnerDashboard = () => {
                       {isEditingGym && (
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={() =>
                             setGymForm({
                               ...gymForm,
                               images: gymForm.images.filter(
                                 (_, idx) => idx !== i,
                               ),
-                            });
-                          }}
+                            })
+                          }
                           className="absolute top-2 right-2 bg-red-500/80 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <X className="h-4 w-4" />
@@ -859,10 +994,6 @@ const OwnerDashboard = () => {
                 Monthly Subscription Fee to Platform (₹){" "}
                 <span className="text-red-500">*</span>
               </label>
-              <p className="text-xs text-foreground/60 mb-2">
-                This is the flat monthly fee you pay to the FitFind platform (as
-                per agreement).
-              </p>
               <input
                 required
                 type="number"
@@ -888,7 +1019,7 @@ const OwnerDashboard = () => {
                 >
                   {uploadingImages ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>{" "}
                       Uploading Images & Saving...
                     </>
                   ) : gym ? (
@@ -901,7 +1032,6 @@ const OwnerDashboard = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      // reset to existing gym details
                       setGymForm({
                         name: gym.name || "",
                         description: gym.description || "",

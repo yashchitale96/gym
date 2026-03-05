@@ -22,8 +22,13 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["USER", "GYM_OWNER", "SUPER_ADMIN"],
+      enum: ["USER", "GYM_OWNER", "SUPER_ADMIN", "TRAINER"],
       default: "USER",
+    },
+    gymId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Gym",
+      default: null, // Only used if role is TRAINER
     },
   },
   { timestamps: true },

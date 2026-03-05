@@ -19,6 +19,7 @@ const Login = () => {
       toast.success("Logged in successfully!");
       if (data.role === "SUPER_ADMIN") navigate("/admin");
       else if (data.role === "GYM_OWNER") navigate("/owner");
+      else if (data.role === "TRAINER") navigate("/trainer");
       else navigate("/dashboard");
     } catch (error) {
       toast.error(error.response?.data?.message || "Login failed");

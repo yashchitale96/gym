@@ -115,14 +115,25 @@ export const AdminLayout = () => {
       <header className="sticky top-0 z-50 w-full glass transition-all duration-300 text-foreground">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link
-            to={user?.role === "SUPER_ADMIN" ? "/admin" : "/owner"}
+            to={
+              user?.role === "SUPER_ADMIN"
+                ? "/admin"
+                : user?.role === "TRAINER"
+                  ? "/trainer"
+                  : "/owner"
+            }
             className="flex items-center space-x-2 group"
           >
             <div className="bg-primary/20 p-2 rounded-lg group-hover:bg-primary/30 transition-colors">
               <Dumbbell className="h-5 w-5 text-primary" />
             </div>
             <span className="font-bold text-xl tracking-tight text-foreground group-hover:text-primary transition-colors">
-              FitFind {user?.role === "SUPER_ADMIN" ? "Admin" : "Owner"}
+              FitFind{" "}
+              {user?.role === "SUPER_ADMIN"
+                ? "Admin"
+                : user?.role === "TRAINER"
+                  ? "Trainer"
+                  : "Owner"}
             </span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
