@@ -73,6 +73,12 @@ const Home = () => {
             >
               Join as a Partner
             </Link>
+            <Link
+              to="/pricing"
+              className="w-full sm:w-auto px-8 py-4 rounded-full border border-primary/30 text-primary font-semibold text-lg hover:bg-primary/10 transition-all duration-300"
+            >
+              View Pricing
+            </Link>
           </motion.div>
         </motion.div>
       </section>

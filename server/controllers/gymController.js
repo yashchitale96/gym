@@ -1,6 +1,7 @@
 const Gym = require("../models/Gym");
 const User = require("../models/User");
 const Membership = require("../models/Membership");
+const Subscription = require("../models/Subscription");
 
 // @desc    Get all approved gyms (with search & filtering)
 // @route   GET /api/gyms
@@ -289,6 +290,14 @@ const getDashboardStats = async (req, res) => {
       status: "ACTIVE",
     });
 
+    const activeSubscriptions = await Subscription.countDocuments({
+      status: "ACTIVE",
+      endDate: { $gt: new Date() },
+    });
+
+    const allSubs = await Subscription.find();
+    const subscriptionRevenue = allSubs.reduce((sum, s) => sum + s.amount, 0);
+
     res.json({
       totalGyms,
       pendingGyms,
@@ -297,6 +306,8 @@ const getDashboardStats = async (req, res) => {
       gymOwners,
       regularUsers,
       activeMemberships,
+      activeSubscriptions,
+      subscriptionRevenue,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

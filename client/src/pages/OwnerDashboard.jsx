@@ -15,6 +15,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
+import SubscriptionTab from "../components/SubscriptionTab";
 
 const OwnerDashboard = () => {
   const [gym, setGym] = useState(null);
@@ -364,18 +365,24 @@ const OwnerDashboard = () => {
 
       {/* Navigation Tabs */}
       <div className="flex space-x-1 border-b border-border mb-6 overflow-x-auto pb-1">
-        {["overview", "members", "staff", "scanner", "plans", "settings"].map(
-          (tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              disabled={!gym && tab !== "settings"}
-              className={`px-4 py-2 rounded-t-lg transition-colors capitalize shrink-0 font-medium ${activeTab === tab ? "bg-zinc-800 text-primary border-b-2 border-primary" : "hover:bg-zinc-800/50 text-foreground/60"} disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {tab}
-            </button>
-          ),
-        )}
+        {[
+          "overview",
+          "members",
+          "staff",
+          "scanner",
+          "plans",
+          "subscription",
+          "settings",
+        ].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            disabled={!gym && tab !== "settings"}
+            className={`px-4 py-2 rounded-t-lg transition-colors capitalize shrink-0 font-medium ${activeTab === tab ? "bg-zinc-800 text-primary border-b-2 border-primary" : "hover:bg-zinc-800/50 text-foreground/60"} disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
       {/* Tab Contents */}
@@ -383,6 +390,9 @@ const OwnerDashboard = () => {
       {activeTab === "overview" && gym && (
         <AnalyticsDashboard gymId={gym._id} />
       )}
+
+      {/* Subscription Tab */}
+      {activeTab === "subscription" && <SubscriptionTab gym={gym} />}
 
       {/* Members Tab */}
       {activeTab === "members" && gym && (

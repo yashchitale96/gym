@@ -18,6 +18,8 @@ import {
   Globe,
   Calendar,
   Users as UsersIcon,
+  IndianRupee,
+  CreditCard,
 } from "lucide-react";
 
 const StatCard = ({ title, value, icon: Icon, color, bg }) => (
@@ -71,6 +73,8 @@ const AdminDashboard = () => {
   const [pendingGyms, setPendingGyms] = useState([]);
   const [allGyms, setAllGyms] = useState([]);
   const [users, setUsers] = useState([]);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [subStats, setSubStats] = useState(null);
 
   // Search states
   const [gymSearch, setGymSearch] = useState("");
@@ -93,6 +97,15 @@ const AdminDashboard = () => {
       setPendingGyms(pendingRes.data);
       setAllGyms(allRes.data);
       setUsers(usersRes.data);
+
+      // Fetch subscriptions
+      try {
+        const subRes = await api.get("/subscriptions/admin/all");
+        setSubscriptions(subRes.data.subscriptions || []);
+        setSubStats(subRes.data.stats || null);
+      } catch {
+        setSubscriptions([]);
+      }
     } catch (error) {
       toast.error("Failed to load dashboard data");
     } finally {
@@ -166,6 +179,11 @@ const AdminDashboard = () => {
           <NavButton id="pending" label="Pending Approvals" icon={Clock} />
           <NavButton id="gyms" label="All Gyms" icon={Dumbbell} />
           <NavButton id="users" label="Users" icon={Users} />
+          <NavButton
+            id="subscriptions"
+            label="Subscriptions"
+            icon={CreditCard}
+          />
         </nav>
       </aside>
 
@@ -203,6 +221,20 @@ const AdminDashboard = () => {
                 icon={Activity}
                 color="text-green-500"
                 bg="bg-green-500/10"
+              />
+              <StatCard
+                title="SaaS Subscriptions"
+                value={stats.activeSubscriptions || 0}
+                icon={CreditCard}
+                color="text-violet-500"
+                bg="bg-violet-500/10"
+              />
+              <StatCard
+                title="SaaS Revenue"
+                value={`₹${(stats.subscriptionRevenue || 0).toLocaleString("en-IN")}`}
+                icon={IndianRupee}
+                color="text-emerald-500"
+                bg="bg-emerald-500/10"
               />
             </div>
 
@@ -484,6 +516,123 @@ const AdminDashboard = () => {
                           className="px-6 py-12 text-center text-foreground/60"
                         >
                           No users found matching your search.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SUBSCRIPTIONS TAB */}
+        {activeTab === "subscriptions" && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h1 className="text-2xl font-bold mb-6">SaaS Subscriptions</h1>
+
+            {subStats && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <StatCard
+                  title="Total Subscriptions"
+                  value={subStats.total}
+                  icon={CreditCard}
+                  color="text-violet-500"
+                  bg="bg-violet-500/10"
+                />
+                <StatCard
+                  title="Active"
+                  value={subStats.active}
+                  icon={CheckCircle}
+                  color="text-green-500"
+                  bg="bg-green-500/10"
+                />
+                <StatCard
+                  title="Total Revenue"
+                  value={`₹${subStats.totalRevenue.toLocaleString("en-IN")}`}
+                  icon={IndianRupee}
+                  color="text-emerald-500"
+                  bg="bg-emerald-500/10"
+                />
+                <StatCard
+                  title="This Month"
+                  value={`₹${subStats.monthlyRevenue.toLocaleString("en-IN")}`}
+                  icon={Activity}
+                  color="text-blue-500"
+                  bg="bg-blue-500/10"
+                />
+              </div>
+            )}
+
+            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-muted/50 border-b border-border">
+                      <th className="px-6 py-4 font-semibold text-sm">Owner</th>
+                      <th className="px-6 py-4 font-semibold text-sm hidden md:table-cell">
+                        Gym
+                      </th>
+                      <th className="px-6 py-4 font-semibold text-sm">Plan</th>
+                      <th className="px-6 py-4 font-semibold text-sm">
+                        Amount
+                      </th>
+                      <th className="px-6 py-4 font-semibold text-sm">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 font-semibold text-sm hidden sm:table-cell">
+                        Expires
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {subscriptions.length > 0 ? (
+                      subscriptions.map((sub) => (
+                        <tr
+                          key={sub._id}
+                          className="hover:bg-white/5 transition-colors"
+                        >
+                          <td className="px-6 py-4">
+                            <div className="font-semibold">
+                              {sub.ownerId?.name || "N/A"}
+                            </div>
+                            <div className="text-xs text-foreground/50">
+                              {sub.ownerId?.email}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-foreground/70 hidden md:table-cell">
+                            {sub.gymId?.name || "N/A"}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium">
+                            {sub.saasPlanId?.name || "N/A"}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium">
+                            ₹{sub.amount}
+                          </td>
+                          <td className="px-6 py-4">
+                            <StatusBadge
+                              status={
+                                sub.status === "ACTIVE" &&
+                                new Date(sub.endDate) > new Date()
+                                  ? "APPROVED"
+                                  : sub.status === "CANCELLED"
+                                    ? "REJECTED"
+                                    : "PENDING"
+                              }
+                            />
+                          </td>
+                          <td className="px-6 py-4 text-sm text-foreground/70 hidden sm:table-cell">
+                            {new Date(sub.endDate).toLocaleDateString("en-IN")}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan="6"
+                          className="px-6 py-12 text-center text-foreground/60"
+                        >
+                          No subscriptions found.
                         </td>
                       </tr>
                     )}

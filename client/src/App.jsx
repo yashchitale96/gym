@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import GymList from "./pages/GymList";
 import GymDetails from "./pages/GymDetails";
+import PricingPage from "./pages/PricingPage";
 import UserDashboard from "./pages/UserDashboard";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -39,6 +40,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/gyms" element={<GymList />} />
             <Route path="/gyms/:id" element={<GymDetails />} />
+            <Route path="/pricing" element={<PricingPage />} />
 
             {/* Protected User Routes */}
             <Route element={<ProtectedRoute allowedRoles={["USER"]} />}>

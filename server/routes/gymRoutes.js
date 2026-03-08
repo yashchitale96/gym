@@ -14,8 +14,12 @@ const {
   getDashboardStats,
 } = require("../controllers/gymController");
 const { protect, authorize } = require("../middlewares/authMiddleware");
+const { checkSubscription } = require("../middlewares/subscriptionMiddleware");
 
-router.route("/").get(getGyms).post(protect, authorize("GYM_OWNER"), createGym);
+router
+  .route("/")
+  .get(getGyms)
+  .post(protect, authorize("GYM_OWNER"), checkSubscription, createGym);
 
 router.post(
   "/upload",
