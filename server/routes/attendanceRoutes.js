@@ -4,10 +4,12 @@ const {
   markAttendance,
   getGymAttendance,
   getUserAttendance,
+  getUserStats,
 } = require("../controllers/attendanceController");
 const { protect, authorize } = require("../middlewares/authMiddleware");
 
 router.get("/my", protect, getUserAttendance);
+router.get("/stats", protect, getUserStats);
 
 router.post(
   "/scan",

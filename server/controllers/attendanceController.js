@@ -1,5 +1,6 @@
 const Attendance = require("../models/Attendance");
 const Membership = require("../models/Membership");
+const Payment = require("../models/Payment");
 
 // @desc    Mark attendance via QR Scan
 // @route   POST /api/attendance/scan
@@ -86,8 +87,88 @@ const getUserAttendance = async (req, res) => {
   }
 };
 
+// @desc    Get user's dashboard stats
+// @route   GET /api/attendance/stats
+// @access  Private/User
+const getUserStats = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Total check-ins
+    const totalCheckIns = await Attendance.countDocuments({ userId });
+
+    // Check-ins this month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const checkInsThisMonth = await Attendance.countDocuments({
+      userId,
+      date: { $gte: startOfMonth },
+    });
+
+    // Total spent
+    const payments = await Payment.find({ userId, status: "COMPLETED" });
+    const totalSpent = payments.reduce((sum, p) => sum + p.amount, 0);
+
+    // Active memberships count
+    const activeMemberships = await Membership.countDocuments({
+      userId,
+      status: "ACTIVE",
+      endDate: { $gt: now },
+    });
+
+    // Attendance by date (last 90 days for heatmap)
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    const recentAttendances = await Attendance.find({
+      userId,
+      date: { $gte: ninetyDaysAgo },
+    }).sort({ date: 1 });
+
+    const attendanceByDate = {};
+    recentAttendances.forEach((a) => {
+      const dateKey = new Date(a.date).toISOString().split("T")[0];
+      attendanceByDate[dateKey] = (attendanceByDate[dateKey] || 0) + 1;
+    });
+
+    // Current streak (consecutive days ending today or yesterday)
+    let currentStreak = 0;
+    const checkDate = new Date();
+    checkDate.setHours(0, 0, 0, 0);
+
+    // Check if user checked in today
+    const todayKey = checkDate.toISOString().split("T")[0];
+    if (!attendanceByDate[todayKey]) {
+      // Check yesterday — streak might still be active
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    while (true) {
+      const key = checkDate.toISOString().split("T")[0];
+      if (attendanceByDate[key]) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    res.json({
+      totalCheckIns,
+      checkInsThisMonth,
+      totalSpent,
+      activeMemberships,
+      currentStreak,
+      attendanceByDate,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   markAttendance,
   getGymAttendance,
   getUserAttendance,
+  getUserStats,
 };
