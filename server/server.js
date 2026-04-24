@@ -12,6 +12,7 @@ const attendanceRoutes = require("./routes/attendanceRoutes");
 const trainerRoutes = require("./routes/trainerRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
+const staffRoutes = require("./routes/staffRoutes");
 
 // Load environment variables
 dotenv.config();
@@ -60,6 +61,7 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/trainers", trainerRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/staff", staffRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({

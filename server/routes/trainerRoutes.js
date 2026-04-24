@@ -6,13 +6,17 @@ const {
   assignTrainerToMember,
   getAssignedMembers,
 } = require("../controllers/trainerController");
-const { protect, authorize } = require("../middlewares/authMiddleware");
+const {
+  protect,
+  authorize,
+  checkPermission,
+} = require("../middlewares/authMiddleware");
 const {
   checkSubscription,
   checkTrainerLimit,
 } = require("../middlewares/subscriptionMiddleware");
 
-// Owner Routes
+// Owner / Staff Routes
 router
   .route("/")
   .post(
@@ -22,11 +26,21 @@ router
     checkTrainerLimit,
     addTrainer,
   )
-  .get(protect, authorize("GYM_OWNER"), getTrainersForGym);
+  .get(
+    protect,
+    authorize("GYM_OWNER", "STAFF"),
+    checkPermission("manage_trainers"),
+    getTrainersForGym,
+  );
 
 router
   .route("/assign/:membershipId")
-  .put(protect, authorize("GYM_OWNER"), assignTrainerToMember);
+  .put(
+    protect,
+    authorize("GYM_OWNER", "STAFF"),
+    checkPermission("manage_trainers"),
+    assignTrainerToMember,
+  );
 
 // Trainer Routes
 router

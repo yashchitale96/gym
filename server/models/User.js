@@ -22,14 +22,28 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["USER", "GYM_OWNER", "SUPER_ADMIN", "TRAINER"],
+      enum: ["USER", "GYM_OWNER", "SUPER_ADMIN", "TRAINER", "STAFF"],
       default: "USER",
     },
     gymId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Gym",
-      default: null, // Only used if role is TRAINER
+      default: null, // Used for TRAINER and STAFF roles
     },
+    permissions: [
+      {
+        type: String,
+        enum: [
+          "manage_members",
+          "manage_trainers",
+          "manage_plans",
+          "view_payments",
+          "view_analytics",
+          "manage_gym",
+          "manage_subscription",
+        ],
+      },
+    ],
   },
   { timestamps: true },
 );

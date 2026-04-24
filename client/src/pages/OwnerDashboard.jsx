@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
 import SubscriptionTab from "../components/SubscriptionTab";
+import StaffTab from "../components/StaffTab";
 
 const OwnerDashboard = () => {
   const [gym, setGym] = useState(null);
@@ -593,6 +594,11 @@ const OwnerDashboard = () => {
                 No trainers have been added to your gym yet.
               </div>
             )}
+          </div>
+
+          {/* Staff / Sub-Admin Management */}
+          <div className="mt-10 pt-8 border-t border-border">
+            <StaffTab />
           </div>
         </div>
       )}

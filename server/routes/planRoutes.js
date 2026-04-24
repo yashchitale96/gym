@@ -5,12 +5,30 @@ const {
   getGymPlans,
   updatePlan,
 } = require("../controllers/planController");
-const { protect, authorize } = require("../middlewares/authMiddleware");
+const {
+  protect,
+  authorize,
+  checkPermission,
+} = require("../middlewares/authMiddleware");
 
-router.route("/").post(protect, authorize("GYM_OWNER"), createPlan);
+router
+  .route("/")
+  .post(
+    protect,
+    authorize("GYM_OWNER", "STAFF"),
+    checkPermission("manage_plans"),
+    createPlan,
+  );
 
 router.route("/gym/:gymId").get(getGymPlans);
 
-router.route("/:id").put(protect, authorize("GYM_OWNER"), updatePlan);
+router
+  .route("/:id")
+  .put(
+    protect,
+    authorize("GYM_OWNER", "STAFF"),
+    checkPermission("manage_plans"),
+    updatePlan,
+  );
 
 module.exports = router;

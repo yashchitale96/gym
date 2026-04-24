@@ -6,7 +6,11 @@ const {
   getUserAttendance,
   getUserStats,
 } = require("../controllers/attendanceController");
-const { protect, authorize } = require("../middlewares/authMiddleware");
+const {
+  protect,
+  authorize,
+  checkPermission,
+} = require("../middlewares/authMiddleware");
 
 router.get("/my", protect, getUserAttendance);
 router.get("/stats", protect, getUserStats);
@@ -14,13 +18,15 @@ router.get("/stats", protect, getUserStats);
 router.post(
   "/scan",
   protect,
-  authorize("GYM_OWNER", "SUPER_ADMIN"),
+  authorize("GYM_OWNER", "SUPER_ADMIN", "STAFF"),
+  checkPermission("manage_members"),
   markAttendance,
 );
 router.get(
   "/gym/:gymId",
   protect,
-  authorize("GYM_OWNER", "SUPER_ADMIN"),
+  authorize("GYM_OWNER", "SUPER_ADMIN", "STAFF"),
+  checkPermission("manage_members"),
   getGymAttendance,
 );
 
